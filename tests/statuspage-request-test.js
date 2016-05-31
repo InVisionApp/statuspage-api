@@ -123,6 +123,54 @@ describe('Request (POST:incidents)', function () {
     });
 });
 
+describe('Request (PATCH:incidents)', function () {
+
+    var statuspage, connection, url, gently, request, params, statuspageRequest;
+
+    var before = function () {
+        statuspage = new StatusPageAPI();
+        connection = new fakes.Client(80, statuspage.host);
+        request = new fakes.ClientRequest();
+        gently = new Gently();
+        var params = { foo:"bar" };
+        statuspageRequest = new StatusPageRequest(statuspage);
+    };
+
+    it("should create the correct default options", function () {
+        before();
+        var element = "incidents/d34db33f",
+            correctPath = "/v1/pages/" + statuspage["pageid"] + "/" + element + ".json";
+        gently.expect(GENTLY_HIJACK.hijacked.https, "request", function (options) {
+            assert.equal(options["method"], "PATCH");
+            assert.equal(options["path"], correctPath);
+            assert.equal(options["host"], "api.statuspage.io");
+            assert.equal(options["port"], 443);
+            assert.equal(options["headers"]["Content-Type"], 'application/x-www-form-urlencoded');
+            return request;
+        });
+        statuspageRequest.sendRequest("PATCH", element);
+    });
+
+    it("should have the correct Content-Length", function () {
+        before();
+        var args = { key: "value" },
+            dataLength = Buffer.byteLength(querystring.stringify(args));
+        gently.expect(GENTLY_HIJACK.hijacked.https, "request", function (options) {
+            assert.equal(options["headers"]["Content-Type"], 'application/x-www-form-urlencoded');
+            assert.equal(options["headers"]["Content-Length"], dataLength);
+            return request;
+        });
+        statuspageRequest.sendRequest("POST", "incidents", args);
+    });
+
+    it("should emit warning with invalid Element", function () {
+        before();
+        gently.expect(statuspageRequest, "emit", function (event) {
+            assert.equal(event, "warning");
+        });
+         statuspageRequest.sendRequest("POST", "bad-element");
+    });
+});
 describe('Request Events', function () {
     var statuspage, connection, url, gently, request, receivedData, statuspageRequest;
 
